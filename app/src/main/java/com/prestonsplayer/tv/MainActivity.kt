@@ -1,6 +1,7 @@
 package com.prestonsplayer.tv
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -28,13 +29,15 @@ private sealed interface Screen {
     data object Setup : Screen
     data object Loading : Screen
     data class Guide(val data: GuideData) : Screen
-    data class Player(val channel: Channel, val data: GuideData) : Screen
+    data class Player(val channels: List<Channel>, val index: Int, val data: GuideData) : Screen
     data class Error(val message: String) : Screen
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Keep the display awake while the app is open — no Fire TV screensaver mid-watch.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val repo = GuideRepository(this)
 
         setContent {
@@ -79,11 +82,11 @@ class MainActivity : ComponentActivity() {
                 is Screen.Guide -> GuideScreen(
                     data = s.data,
                     weatherCity = city,
-                    onPlay = { ch -> screen = Screen.Player(ch, s.data) },
+                    onPlay = { chs, idx -> screen = Screen.Player(chs, idx, s.data) },
                     onOpenSettings = { screen = Screen.Setup }
                 )
 
-                is Screen.Player -> PlayerScreen(s.channel) { screen = Screen.Guide(s.data) }
+                is Screen.Player -> PlayerScreen(s.channels, s.index) { screen = Screen.Guide(s.data) }
 
                 is Screen.Error -> Box(
                     Modifier.fillMaxSize().background(GuideTheme.BG),

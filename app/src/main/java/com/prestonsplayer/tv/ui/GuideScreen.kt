@@ -43,7 +43,7 @@ private val dateFmt = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
 fun GuideScreen(
     data: GuideData,
     weatherCity: String,
-    onPlay: (Channel) -> Unit,
+    onPlay: (List<Channel>, Int) -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val gridStart = remember {
@@ -64,6 +64,26 @@ fun GuideScreen(
     var focusedChannel by remember { mutableStateOf<Channel?>(null) }
     var focusedProgramme by remember { mutableStateOf<Programme?>(null) }
     val hScroll = rememberScrollState()
+
+    // ---- Filters: type (group-title) and country (from tvg-id) ----
+    val allCategories = remember(data.channels) {
+        val counts = HashMap<String, Int>()
+        data.channels.forEach { c -> c.categories.forEach { counts[it] = (counts[it] ?: 0) + 1 } }
+        counts.entries.sortedByDescending { it.value }.map { it.key }
+    }
+    val allCountries = remember(data.channels) {
+        val counts = HashMap<String, Int>()
+        data.channels.forEach { c -> c.country?.let { counts[it] = (counts[it] ?: 0) + 1 } }
+        counts.entries.sortedByDescending { it.value }.map { it.key }
+    }
+    var selCategory by remember { mutableStateOf<String?>(null) }
+    var selCountry by remember { mutableStateOf<String?>(null) }
+    val channels = remember(data.channels, selCategory, selCountry) {
+        data.channels.filter { c ->
+            (selCategory == null || c.categories.contains(selCategory)) &&
+                (selCountry == null || c.country == selCountry)
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(GuideTheme.BG)) {
 
@@ -165,6 +185,12 @@ fun GuideScreen(
             )
         }
 
+        // ================= Filter chips: Type + Country =================
+        if (allCategories.isNotEmpty())
+            FilterChips("Type", allCategories, selCategory, { it }) { selCategory = it }
+        if (allCountries.isNotEmpty())
+            FilterChips("Country", allCountries, selCountry, { countryName(it) }) { selCountry = it }
+
         // ================= Timeline header =================
         Row(Modifier.fillMaxWidth().background(GuideTheme.SURFACE)) {
             Box(Modifier.width(CHANNEL_COL_WIDTH).height(34.dp))
@@ -187,14 +213,14 @@ fun GuideScreen(
 
         // ================= Channel rows =================
         LazyColumn(Modifier.fillMaxSize()) {
-            itemsIndexed(data.channels, key = { _, c -> c.number }) { index, channel ->
+            itemsIndexed(channels, key = { _, c -> c.number }) { index, channel ->
                 val rowBg = if (index % 2 == 0) GuideTheme.BG else GuideTheme.SURFACE_ALT
                 Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).background(rowBg)) {
 
                     Row(
                         Modifier
                             .width(CHANNEL_COL_WIDTH).fillMaxHeight()
-                            .clickable { onPlay(channel) }
+                            .clickable { onPlay(channels, index) }
                             .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -220,7 +246,7 @@ fun GuideScreen(
                             gridStart = gridStart,
                             now = now,
                             onFocus = { p -> focusedChannel = channel; focusedProgramme = p },
-                            onClick = { onPlay(channel) }
+                            onClick = { onPlay(channels, index) }
                         )
                     }
                 }
@@ -303,3 +329,70 @@ private fun GuideCell(
         )
     }
 }
+
+@Composable
+private fun FilterChips(
+    label: String,
+    options: List<String>,
+    selected: String?,
+    display: (String) -> String,
+    onSelect: (String?) -> Unit
+) {
+    val scroll = rememberScrollState()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(GuideTheme.SURFACE)
+            .padding(vertical = 4.dp)
+            .horizontalScroll(scroll),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label, color = GuideTheme.TEXT_DIM, fontSize = 12.sp,
+            modifier = Modifier.padding(start = 12.dp, end = 6.dp).width(58.dp)
+        )
+        Chip("All", selected == null) { onSelect(null) }
+        options.forEach { opt -> Chip(display(opt), selected == opt) { onSelect(opt) } }
+        Spacer(Modifier.width(12.dp))
+    }
+}
+
+@Composable
+private fun Chip(text: String, active: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val bg = when {
+        focused -> GuideTheme.ACCENT
+        active -> GuideTheme.ACCENT_SOFT
+        else -> GuideTheme.SURFACE_ALT
+    }
+    Text(
+        text,
+        color = if (focused || active) Color.White else GuideTheme.TEXT,
+        fontSize = 13.sp,
+        maxLines = 1,
+        modifier = Modifier
+            .padding(horizontal = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    )
+}
+
+/** Friendly name for a 2-letter country code; falls back to the uppercased code. */
+private fun countryName(code: String): String = COUNTRY_NAMES[code] ?: code.uppercase()
+
+private val COUNTRY_NAMES = mapOf(
+    "us" to "USA", "uk" to "UK", "gb" to "UK", "ca" to "Canada", "au" to "Australia",
+    "de" to "Germany", "fr" to "France", "es" to "Spain", "it" to "Italy", "nl" to "Netherlands",
+    "ru" to "Russia", "br" to "Brazil", "mx" to "Mexico", "ar" to "Argentina", "in" to "India",
+    "pk" to "Pakistan", "tr" to "Turkey", "pl" to "Poland", "pt" to "Portugal", "se" to "Sweden",
+    "no" to "Norway", "dk" to "Denmark", "fi" to "Finland", "gr" to "Greece", "ua" to "Ukraine",
+    "ro" to "Romania", "cz" to "Czechia", "at" to "Austria", "ch" to "Switzerland", "be" to "Belgium",
+    "ie" to "Ireland", "jp" to "Japan", "kr" to "Korea", "cn" to "China", "id" to "Indonesia",
+    "ph" to "Philippines", "th" to "Thailand", "vn" to "Vietnam", "my" to "Malaysia", "sg" to "Singapore",
+    "za" to "S. Africa", "ng" to "Nigeria", "eg" to "Egypt", "ke" to "Kenya", "ma" to "Morocco",
+    "sa" to "Saudi Arabia", "ae" to "UAE", "il" to "Israel", "ir" to "Iran", "iq" to "Iraq",
+    "co" to "Colombia", "cl" to "Chile", "pe" to "Peru", "ve" to "Venezuela", "nz" to "New Zealand"
+)

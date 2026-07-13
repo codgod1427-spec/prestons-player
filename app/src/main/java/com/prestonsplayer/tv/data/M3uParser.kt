@@ -27,13 +27,16 @@ object M3uParser {
                 }
                 line.isNotEmpty() && !line.startsWith("#") -> {
                     val name = pendingName ?: "Channel $number"
+                    val tvgId = pendingAttrs["tvg-id"].orEmpty()
                     channels += Channel(
-                        id = pendingAttrs["tvg-id"]?.ifEmpty { null } ?: name,
+                        id = tvgId.ifEmpty { null } ?: name,
                         name = name,
                         number = number++,
                         logoUrl = pendingAttrs["tvg-logo"]?.ifEmpty { null },
                         group = pendingAttrs["group-title"]?.ifEmpty { null },
-                        streamUrl = line
+                        streamUrl = line,
+                        country = countryOf(tvgId),
+                        categories = categoriesOf(pendingAttrs["group-title"])
                     )
                     pendingName = null
                     pendingAttrs = emptyMap()
@@ -42,4 +45,16 @@ object M3uParser {
         }
         return channels
     }
+
+    /** iptv-org encodes country in the tvg-id: "00sReplay.us@SD" -> "us", "3ABNCanada.ca" -> "ca". */
+    private fun countryOf(tvgId: String): String? {
+        if (tvgId.isBlank()) return null
+        val code = tvgId.substringBefore('@').substringAfterLast('.', "")
+        return if (code.length == 2 && code.all { it.isLetter() }) code.lowercase() else null
+    }
+
+    /** group-title may hold several categories, e.g. "News;Public" -> ["News","Public"]. */
+    private fun categoriesOf(group: String?): List<String> =
+        group?.split(';')?.map { it.trim() }?.filter { it.isNotEmpty() && !it.equals("Undefined", true) }
+            ?: emptyList()
 }
