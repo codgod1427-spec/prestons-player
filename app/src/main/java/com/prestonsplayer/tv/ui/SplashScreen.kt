@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.withFrameNanos
+import androidx.compose.runtime.withFrameNanos
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sin
