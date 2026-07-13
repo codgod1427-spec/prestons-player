@@ -12,15 +12,18 @@ import kotlin.math.abs
 import kotlin.math.sin
 
 /*
- * A slim header banner: the word PRESTON'S PLAYER, spelled in grass-capped
- * voxel letters, scrolls by while the same blocky runner from the splash
- * sprints and hops along the top. Fully self-contained (its own copy of the
- * art primitives) so it never touches SplashScreen.
+ * Header backdrop: big grass-capped letters spelling PRESTON'S PLAYER scroll by
+ * at varying heights, and the blocky runner sprints and hops from letter to
+ * letter — jumping the tall ones. Sits behind the clock/PiP. Self-contained so
+ * it never touches SplashScreen.
  */
 
-private val M_GRASS   = Color(0xFF57B14F)
-private val M_GRASS_HI = Color(0xFF6FCC63)
-private val M_DIRT    = Color(0xFF5E3F25)
+private const val WORD = "PRESTON'S PLAYER"
+private const val A = 0.72f   // letter opacity, so header text stays readable on top
+
+private val M_GRASS   = Color(0xFF57B14F).copy(alpha = A)
+private val M_GRASS_HI = Color(0xFF6FCC63).copy(alpha = A)
+private val M_DIRT    = Color(0xFF5E3F25).copy(alpha = A)
 private val M_EDGE    = Color(0xFF2A1B10)
 private val M_SKIN    = Color(0xFFD9A066)
 private val M_SKIN_S  = Color(0xFFB07E4B)
@@ -31,9 +34,9 @@ private val M_PANTS_S = Color(0xFF2B2E42)
 private val M_HAIR    = Color(0xFF3A2A1C)
 private val M_EYE     = Color(0xFFFFFFFF)
 private val M_PUPIL   = Color(0xFF16202E)
-private val M_DUST    = Color(0x66FFFFFF)
+private val M_DUST    = Color(0x55FFFFFF)
 
-// 5x7 blocky font, only the glyphs PRESTON'S PLAYER needs.
+private val BLANK = listOf("     ", "     ", "     ", "     ", "     ", "     ", "     ")
 private val FONT: Map<Char, List<String>> = mapOf(
     'P' to listOf("#### ", "#   #", "#   #", "#### ", "#    ", "#    ", "#    "),
     'R' to listOf("#### ", "#   #", "#   #", "#### ", "# #  ", "#  # ", "#   #"),
@@ -46,10 +49,10 @@ private val FONT: Map<Char, List<String>> = mapOf(
     'A' to listOf(" ### ", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"),
     'Y' to listOf("#   #", "#   #", " # # ", "  #  ", "  #  ", "  #  ", "  #  "),
     '\'' to listOf("  #  ", "  #  ", "  #  ", "     ", "     ", "     ", "     "),
-    ' ' to listOf("     ", "     ", "     ", "     ", "     ", "     ", "     "),
+    ' ' to BLANK,
 )
 
-private const val WORD = "PRESTON'S PLAYER"
+private fun lerp(a: Float, b: Float, q: Float) = a + (b - a) * q
 
 @Composable
 fun ParkourMarquee(modifier: Modifier = Modifier) {
@@ -65,42 +68,66 @@ fun ParkourMarquee(modifier: Modifier = Modifier) {
     }
 
     Canvas(modifier) {
-        val ch = size.height
-        val cell = (ch * 0.40f) / 7f              // one font pixel
-        val glyphW = 6f * cell                    // 5 wide + 1 spacing
-        val totalW = WORD.length * glyphW
-        val wordTopY = ch * 0.50f
-        val speed = cell * 7f                      // px / sec
-        val scrollBase = -((t * speed) % totalW)
+        val h = size.height
+        val baseline = h * 0.92f
+        val baseCell = h * 0.050f
+        val n = WORD.length
 
-        // scrolling word (drawn twice for a seamless wrap)
-        for (rep in 0..1) {
-            var gx = scrollBase + rep * totalW
-            for (chr in WORD) {
-                drawGlyph(chr, gx, wordTopY, cell)
-                gx += glyphW
+        // per-letter metrics: varied size -> varied width & terrain height
+        val cell = FloatArray(n)
+        val width = FloatArray(n)
+        val topY = FloatArray(n)          // where the runner stands on this letter
+        val cumX = FloatArray(n)
+        var cx = 0f
+        for (i in 0 until n) {
+            val f = 0.8f + 0.7f * abs(sin(i * 1.3f))     // deterministic 0.8..1.5
+            val c = baseCell * f
+            cell[i] = c
+            width[i] = 6f * c
+            val rows = FONT[WORD[i]] ?: BLANK
+            var topLit = 7
+            for (r in 0..6) { if (rows[r].indexOf('#') >= 0) { topLit = r; break } }
+            topY[i] = if (topLit == 7) baseline else baseline - (7 - topLit) * c
+            cumX[i] = cx
+            cx += width[i]
+        }
+        val totalW = cx
+        val speed = baseCell * 6.5f
+        val scroll = (t * speed) % totalW
+
+        // draw the word, wrapped
+        for (rep in -1..1) {
+            for (i in 0 until n) {
+                val gx = cumX[i] - scroll + rep * totalW
+                if (gx > size.width || gx + width[i] < 0f) continue
+                drawGlyph(WORD[i], gx, baseline, cell[i])
             }
         }
 
-        // runner: sprint, then a hop, on a loop — fixed screen x while the word scrolls under him
-        val cycle = 1.7f
-        val ph = t % cycle
-        val running = ph < 1.15f
-        val jp = if (running) -1f else (ph - 1.15f) / (cycle - 1.15f)
-        val peakPx = ch * 0.20f
-        val lift = if (!running) peakPx * 4f * jp * (1f - jp) else 0f
-        val runX = size.width * 0.24f
-        val rScale = (ch * 0.48f) / 18f
+        // runner hops letter-to-letter at a fixed screen x
+        val runX = size.width * 0.22f
+        val minHop = h * 0.05f
+        val margin = h * 0.06f
+        val worldX = (runX + scroll) % totalW
+        var li = 0
+        for (i in 0 until n) { if (worldX >= cumX[i] && worldX < cumX[i] + width[i]) { li = i; break } }
+        val q = ((worldX - cumX[li]) / width[li]).coerceIn(0f, 1f)
+        val ni = (li + 1) % n
+        val t0 = topY[li]; val t1 = topY[ni]
+        val hop = maxOf(minHop, abs(t0 - t1) / 2f + margin)
+        val airborne = hop > minHop * 1.35f
+        val feetY = lerp(t0, t1, q) - hop * sin(PI.toFloat() * q)
+        val rScale = (h * 0.26f) / 18f
 
-        drawMarqueeRunner(runX, wordTopY - lift, rScale, running, t * 11f, jp)
+        drawMarqueeRunner(runX, feetY, rScale, running = !airborne, runPhase = t * 11f, jumpP = if (airborne) q else -1f)
 
-        if (running) {
+        if (!airborne) {
             for (k in 0..2) {
                 val age = (t * 6f + k * 0.33f) % 1f
                 val s = (2.6f - age * 1.7f).coerceAtLeast(0.4f) * rScale
                 drawRect(
-                    M_DUST.copy(alpha = (1f - age) * 0.35f),
-                    topLeft = Offset(runX - 4f * rScale - age * 9f * rScale, wordTopY - 1f * rScale - age * 2.5f * rScale),
+                    M_DUST.copy(alpha = (1f - age) * 0.3f),
+                    topLeft = Offset(runX - 4f * rScale - age * 9f * rScale, feetY - 1f * rScale - age * 2.5f * rScale),
                     size = Size(s, s)
                 )
             }
@@ -108,8 +135,8 @@ fun ParkourMarquee(modifier: Modifier = Modifier) {
     }
 }
 
-/** Draws one grass-capped letter at (gx, topY); each lit font pixel is a small block. */
-private fun DrawScope.drawGlyph(chr: Char, gx: Float, topY: Float, cell: Float) {
+/** One grass-capped letter, bottom row sitting on the baseline. */
+private fun DrawScope.drawGlyph(chr: Char, gx: Float, baseline: Float, cell: Float) {
     val rows = FONT[chr] ?: return
     for (c in 0..4) {
         var topLit = -1
@@ -121,21 +148,18 @@ private fun DrawScope.drawGlyph(chr: Char, gx: Float, topY: Float, cell: Float) 
                 r >= 5      -> M_DIRT
                 else        -> M_GRASS
             }
-            drawRect(col, topLeft = Offset(gx + c * cell, topY + r * cell), size = Size(cell + 0.6f, cell + 0.6f))
+            val y = baseline - (7 - r) * cell
+            drawRect(col, topLeft = Offset(gx + c * cell, y), size = Size(cell + 0.6f, cell + 0.6f))
         }
     }
 }
-
-// ---- runner (self-contained copy of the splash art) ----
-private fun DrawScope.mpx(x: Float, y: Float, w: Float, h: Float, c: Color) =
-    drawRect(c, topLeft = Offset(x, y), size = Size(w, h))
 
 private fun DrawScope.drawMarqueeRunner(
     x: Float, groundY: Float, scale: Float,
     running: Boolean, runPhase: Float, jumpP: Float
 ) {
     fun px(ux: Float, uy: Float, uw: Float, uh: Float, c: Color) =
-        mpx(x + ux * scale, groundY + uy * scale, uw * scale, uh * scale, c)
+        drawRect(c, topLeft = Offset(x + ux * scale, groundY + uy * scale), size = Size(uw * scale, uh * scale))
 
     val bob = if (running) abs(sin(runPhase)) * 0.7f else 0f
     val swing = if (running) sin(runPhase) * 3.2f else 0f

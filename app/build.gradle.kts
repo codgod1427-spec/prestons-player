@@ -12,8 +12,8 @@ android {
         applicationId = "com.prestonsplayer.tv"
         minSdk = 22          // covers older Fire TV Sticks
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     signingConfigs {

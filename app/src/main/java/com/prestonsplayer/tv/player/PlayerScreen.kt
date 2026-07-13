@@ -1,8 +1,8 @@
 package com.prestonsplayer.tv.player
 
-import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,12 +14,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -39,9 +49,24 @@ fun PlayerScreen(channels: List<Channel>, startIndex: Int, onBack: () -> Unit) {
             prepare()
         }
     }
-    DisposableEffect(player) { onDispose { player.release() } }
 
-    // Show the channel banner briefly whenever the channel changes.
+    // Pause when the app leaves the foreground (no background/double audio), release on exit.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, player) {
+        val obs = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> player.playWhenReady = false
+                Lifecycle.Event.ON_START -> player.playWhenReady = true
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(obs)
+            player.release()
+        }
+    }
+
     var showInfo by remember { mutableStateOf(true) }
     LaunchedEffect(index.value) {
         showInfo = true
@@ -49,40 +74,40 @@ fun PlayerScreen(channels: List<Channel>, startIndex: Int, onBack: () -> Unit) {
         showInfo = false
     }
 
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
     BackHandler { onBack() }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .focusRequester(focusRequester)
+            .onKeyEvent { e ->
+                if (e.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (e.key) {
+                    Key.DirectionUp, Key.ChannelUp -> {
+                        if (channels.size > 1) index.value = (index.value - 1 + channels.size) % channels.size
+                        true
+                    }
+                    Key.DirectionDown, Key.ChannelDown -> {
+                        if (channels.size > 1) index.value = (index.value + 1) % channels.size
+                        true
+                    }
+                    Key.DirectionCenter, Key.Enter -> { showInfo = true; true }
+                    else -> false
+                }
+            }
+            .focusable()
+    ) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = player
-                    useController = true
-                    controllerAutoShow = false
-                    setShowNextButton(false)
-                    setShowPreviousButton(false)
-                    isFocusable = true
-                    isFocusableInTouchMode = true
-                    requestFocus()
-                    setOnKeyListener { _, keyCode, event ->
-                        if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                        when (keyCode) {
-                            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
-                                if (channels.size > 1)
-                                    index.value = (index.value - 1 + channels.size) % channels.size
-                                true
-                            }
-                            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                                if (channels.size > 1)
-                                    index.value = (index.value + 1) % channels.size
-                                true
-                            }
-                            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                                if (!isControllerFullyVisible) { showController(); true } else false
-                            }
-                            else -> false
-                        }
-                    }
+                    useController = false          // Compose owns the D-pad now
+                    isFocusable = false
                 }
             },
             update = { it.player = player }
@@ -102,7 +127,7 @@ fun PlayerScreen(channels: List<Channel>, startIndex: Int, onBack: () -> Unit) {
                 Text(channel.name, color = Color.White, fontSize = 20.sp)
             }
             Text(
-                "▲ ▼  change channel",
+                "▲ ▼  change channel      ◀ Back  to guide",
                 color = Color(0x99FFFFFF), fontSize = 12.sp,
                 modifier = Modifier.align(Alignment.BottomStart).padding(28.dp)
             )

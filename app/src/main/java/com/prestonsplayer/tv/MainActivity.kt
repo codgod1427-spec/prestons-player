@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +50,11 @@ class MainActivity : ComponentActivity() {
             var lastGuide by remember { mutableStateOf<GuideData?>(null) }
             LaunchedEffect(screen) { (screen as? Screen.Guide)?.let { lastGuide = it.data } }
 
+            // Hoisted here so guide scroll position + filters survive Guide -> Player -> Guide.
+            val guideListState = rememberLazyListState()
+            var selCategory by remember { mutableStateOf<String?>(null) }
+            var selCountry by remember { mutableStateOf<String?>(null) }
+
             LaunchedEffect(screen) {
                 if (screen is Screen.Loading) {
                     screen = try {
@@ -88,6 +94,11 @@ class MainActivity : ComponentActivity() {
                 is Screen.Guide -> GuideScreen(
                     data = s.data,
                     weatherCity = city,
+                    listState = guideListState,
+                    selCategory = selCategory,
+                    onSelectCategory = { selCategory = it },
+                    selCountry = selCountry,
+                    onSelectCountry = { selCountry = it },
                     onPlay = { chs, idx -> screen = Screen.Player(chs, idx, s.data) },
                     onOpenSettings = { screen = Screen.Setup }
                 )

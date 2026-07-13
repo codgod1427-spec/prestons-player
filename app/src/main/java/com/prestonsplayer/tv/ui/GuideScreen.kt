@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +33,7 @@ private val ROW_HEIGHT = 64.dp
 private val DP_PER_MIN = 4.dp
 private const val WINDOW_HOURS = 12L
 private const val SLOT_MIN = 30L
-private val HEADER_HEIGHT = 132.dp
+private val HEADER_HEIGHT = 150.dp
 
 private val timeFmt = SimpleDateFormat("h:mm a", Locale.getDefault())
 private val clockFmt = SimpleDateFormat("h:mm", Locale.getDefault())
@@ -43,6 +44,11 @@ private val dateFmt = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
 fun GuideScreen(
     data: GuideData,
     weatherCity: String,
+    listState: LazyListState,
+    selCategory: String?,
+    onSelectCategory: (String?) -> Unit,
+    selCountry: String?,
+    onSelectCountry: (String?) -> Unit,
     onPlay: (List<Channel>, Int) -> Unit,
     onOpenSettings: () -> Unit
 ) {
@@ -76,8 +82,6 @@ fun GuideScreen(
         data.channels.forEach { c -> c.country?.let { counts[it] = (counts[it] ?: 0) + 1 } }
         counts.entries.sortedByDescending { it.value }.map { it.key }
     }
-    var selCategory by remember { mutableStateOf<String?>(null) }
-    var selCountry by remember { mutableStateOf<String?>(null) }
     val channels = remember(data.channels, selCategory, selCountry) {
         data.channels.filter { c ->
             (selCategory == null || c.categories.contains(selCategory)) &&
@@ -87,23 +91,17 @@ fun GuideScreen(
 
     Column(Modifier.fillMaxSize().background(GuideTheme.BG)) {
 
-        // ================= Scrolling PRESTON'S PLAYER parkour banner =================
-        ParkourMarquee(
-            Modifier
-                .fillMaxWidth()
-                .height(46.dp)
-                .background(GuideTheme.SURFACE_ALT)
-        )
-
-        // ================= HEADER: PiP + info + clock/date/weather =================
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(HEADER_HEIGHT)
-                .background(GuideTheme.SURFACE_ALT)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        // ============ HEADER: parkour marquee behind PiP + info + clock/weather ============
+        Box(Modifier.fillMaxWidth().height(HEADER_HEIGHT)) {
+            ParkourMarquee(Modifier.matchParentSize())
+            // scrim so the letters read as a backdrop and the widgets stay legible
+            Box(Modifier.matchParentSize().background(GuideTheme.SURFACE_ALT.copy(alpha = 0.42f)))
+            Row(
+                Modifier
+                    .matchParentSize()
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             // --- Live PiP window (16:9) ---
             PipPreview(
                 channel = focusedChannel,
@@ -183,13 +181,14 @@ fun GuideScreen(
                     .clickable { onOpenSettings() }
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
+            }
         }
 
         // ================= Filter chips: Type + Country =================
         if (allCategories.isNotEmpty())
-            FilterChips("Type", allCategories, selCategory, { it }) { selCategory = it }
+            FilterChips("Type", allCategories, selCategory, { it }, onSelectCategory)
         if (allCountries.isNotEmpty())
-            FilterChips("Country", allCountries, selCountry, { countryName(it) }) { selCountry = it }
+            FilterChips("Country", allCountries, selCountry, { countryName(it) }, onSelectCountry)
 
         // ================= Timeline header =================
         Row(Modifier.fillMaxWidth().background(GuideTheme.SURFACE)) {
@@ -212,7 +211,7 @@ fun GuideScreen(
         }
 
         // ================= Channel rows =================
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), state = listState) {
             itemsIndexed(channels, key = { _, c -> c.number }) { index, channel ->
                 val rowBg = if (index % 2 == 0) GuideTheme.BG else GuideTheme.SURFACE_ALT
                 Row(Modifier.fillMaxWidth().height(ROW_HEIGHT).background(rowBg)) {
