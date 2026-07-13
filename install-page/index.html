@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preston's Player — Install</title>
+<meta name="description" content="Preston's Player — a cable-style TV guide app for Fire TV and Android TV.">
+<style>
+  :root{
+    --bg:#0A0F1A; --surface:#131B2C; --surface2:#0F1626;
+    --line:#22304A; --text:#F2F5F9; --dim:#8A94A6;
+    --accent:#1E88E5; --grass:#6FCC63;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 22px 80px}
+
+  header{text-align:center;padding:26px 0 34px}
+  .mark{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:900;line-height:1.05}
+  .mark .a{display:block;font-size:20px;letter-spacing:8px;color:#fff}
+  .mark .b{display:block;font-size:40px;letter-spacing:5px;color:var(--grass)}
+  .tag{color:var(--dim);margin-top:14px;font-size:15px}
+
+  .hero{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000;margin:8px 0 30px}
+  .hero canvas{display:block;width:100%;height:auto}
+
+  .cta{display:block;text-align:center;background:var(--accent);color:#fff;text-decoration:none;
+    font-weight:700;font-size:18px;padding:17px;border-radius:10px;margin:0 0 12px}
+  .cta:hover{background:#2b96ef}
+  .meta{text-align:center;color:var(--dim);font-size:13px;margin-bottom:36px}
+
+  .code{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;text-align:center;margin-bottom:36px}
+  .code .lbl{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:1.5px}
+  .code .num{font-family:ui-monospace,monospace;font-size:34px;font-weight:800;color:var(--grass);
+    letter-spacing:5px;margin:6px 0 2px}
+  .code .hint{color:var(--dim);font-size:13px}
+
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1.6px;color:var(--dim);
+    border-bottom:1px solid var(--line);padding-bottom:9px;margin:38px 0 18px;font-weight:600}
+  ol{padding-left:20px;margin:0} li{margin-bottom:11px}
+  li b{color:#fff}
+  .path{background:var(--surface);border:1px solid var(--line);border-radius:5px;
+    padding:1px 7px;font-family:ui-monospace,monospace;font-size:13.5px;color:var(--grass)}
+
+  .note{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+    padding:15px 18px;margin:26px 0;color:var(--dim);font-size:14.5px}
+  .note.warn{border-left-color:#E5A33B}
+  .note b{color:var(--text)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:0;color:var(--dim);font-size:13.5px}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
+    color:#5c6880;font-size:12.5px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark"><span class="a">PRESTON'S</span><span class="b">PLAYER</span></div>
+    <p class="tag">A cable-style TV guide for Fire TV &amp; Android TV.<br>Bring your own playlist.</p>
+  </header>
+
+  <div class="hero"><canvas id="c" width="1000" height="360"></canvas></div>
+
+  <!-- ⬇️ Point href at your hosted APK -->
+  <a class="cta" href="./PrestonsPlayer.apk" download>⬇  Download APK</a>
+  <p class="meta">v1.0 · Android 5.1+ (Fire OS 5+) · ~9 MB</p>
+
+  <!-- ⬇️ Replace with the code you generate at go.aftvnews.com -->
+  <div class="code">
+    <div class="lbl">Downloader code</div>
+    <div class="num">000000</div>
+    <div class="hint">Easiest route — type this into the Downloader app on your TV</div>
+  </div>
+
+  <h2>Install on Firestick — the easy way</h2>
+  <ol>
+    <li>On your Firestick: <b>Settings → My Fire TV → Developer Options</b> → turn on <b>Install unknown apps</b> (allow it for Downloader).</li>
+    <li>Install <b>Downloader</b> from the Amazon Appstore — it's free and official.</li>
+    <li>Open Downloader, click the URL box, and enter the <b>code above</b>.</li>
+    <li>It downloads the APK and asks to install. Hit <b>Install</b>, then <b>Open</b>.</li>
+    <li>On first launch, paste in your <b>M3U playlist URL</b>. Guide data and weather are optional.</li>
+  </ol>
+
+  <div class="note warn">
+    <b>Won't work on the newest Firesticks.</b> Amazon's latest sticks run <b>Vega OS</b>, which
+    blocks sideloading and the Downloader app entirely. If your stick is a Vega model, you'll need
+    an older Fire TV or an Android/Google TV box instead.
+  </div>
+
+  <h2>Install by ADB (if you prefer)</h2>
+  <ol>
+    <li>Enable <b>ADB Debugging</b> in Developer Options.</li>
+    <li>Grab your stick's IP: <b>Settings → My Fire TV → About → Network</b>.</li>
+    <li>From your computer, on the same Wi-Fi:<br>
+      <span class="path">adb connect YOUR_IP:5555</span> &nbsp;then&nbsp;
+      <span class="path">adb install PrestonsPlayer.apk</span></li>
+  </ol>
+
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="card"><h3>Grid guide</h3><p>Channels down the side, timeline across the top — like a real cable box.</p></div>
+    <div class="card"><h3>Live PiP</h3><p>Preview window follows whatever channel you're hovering.</p></div>
+    <div class="card"><h3>Clock &amp; weather</h3><p>Time, date, and current conditions for your city.</p></div>
+    <div class="card"><h3>Parkour splash</h3><p>Because a loading spinner is boring.</p></div>
+  </div>
+
+  <div class="note">
+    <b>This app has no channels in it.</b> It's a player — an empty shell until you add your own
+    M3U playlist. It doesn't come with, host, or provide any content. Use playlists you actually
+    have the right to use.
+  </div>
+
+  <footer>
+    Preston's Player · Not affiliated with Amazon, Google, or any TV provider.<br>
+    Sideloaded software — install at your own discretion.
+  </footer>
+</div>
+
+<script>
+/* Same voxel runner as the app's splash — drawn from primitives. */
+const c=document.getElementById('c'),g=c.getContext('2d'),W=1000,H=360;
+const GRASS='#57B14F',GH='#6FCC63',DIRT='#7A5230',DD='#5E3F25',EDGE='#2A1B10';
+const SKIN='#D9A066',SS='#B07E4B',SHIRT='#2F7FD8',SHS='#215FA3',PANTS='#3B3F58',PS='#2B2E42',HAIR='#3A2A1C';
+const SC=W/200*0.95, OX=(W-200*SC)/2, OY=90, YS=0.55;
+const wx=x=>OX+x*SC, wy=y=>OY+y*SC*YS;
+const px=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(Math.round(wx(x)),Math.round(wy(y)),Math.ceil(w*SC),Math.ceil(h*SC*YS));};
+const PLAT=[[0,62,54],[76,62,36],[120,44,38],[170,62,40]];
+const CR=[{k:'R',x0:10,y0:62,x1:46,y1:62,d:1.05,p:0},{k:'J',x0:46,y0:62,x1:84,y1:62,d:.8,p:22},
+{k:'R',x0:84,y0:62,x1:104,y1:62,d:.55,p:0},{k:'J',x0:104,y0:62,x1:128,y1:44,d:.7,p:16},
+{k:'R',x0:128,y0:44,x1:150,y1:44,d:.6,p:0},{k:'J',x0:150,y0:44,x1:186,y1:62,d:.8,p:12},
+{k:'R',x0:186,y0:62,x1:200,y1:62,d:.4,p:0}];
+const T=CR.reduce((a,m)=>a+m.d,0);
+function plat(x,t,w){const d=26;px(x,t,w,4,GRASS);px(x,t,w,1.2,GH);px(x,t+4,w,d,DIRT);
+for(let s=x+12;s<x+w;s+=12)px(s,t+4,.7,d,DD);px(x,t+16,w,.7,DD);px(x,t+4+d-1.4,w,1.4,EDGE);}
+function run(x,gy,r,ph,jp,sq){const h=18*sq,hs=6;
+const a=r?Math.sin(ph)*3.2:0,b=r?Math.sin(ph+Math.PI)*3.2:0,bo=r?Math.abs(Math.sin(ph))*.7:0;
+const bt=gy-h+bo,ht=bt-hs;
+if(jp>=0){const t=Math.sin(jp*Math.PI);px(x-1.2,gy-7-t*2.2,2.6,6,PANTS);px(x+1.6,gy-8-t*3.4,2.6,5.4,PS);px(x+1.6,gy-3.4-t*3.4,3.2,1.6,EDGE);}
+else{px(x-1.6+a,gy-7,2.6,7,PS);px(x+.9+b,gy-7,2.6,7,PANTS);px(x-1.9+a,gy-1.4,3.2,1.4,EDGE);px(x+.7+b,gy-1.4,3.2,1.4,EDGE);}
+px(x-2.2,bt,5.6,7.4,SHIRT);px(x+1.2,bt,2.2,7.4,SHS);px(x-2.2,bt+5.6,5.6,1.8,SHS);
+if(jp>=0){const t=Math.sin(jp*Math.PI);px(x+2.6,bt-2.4*t,2.2,6,SKIN);px(x-4,bt+1.6*t,2.2,5.6,SS);}
+else{px(x+2.6,bt+.6+b,2.2,6,SKIN);px(x-4,bt+.6+a,2.2,6,SS);}
+px(x-3,ht,hs,hs,SKIN);px(x+.6,ht,2.4,hs,SS);px(x-3,ht,hs,1.7,HAIR);px(x-3,ht-.9,4.2,1.2,HAIR);
+px(x+.2,ht+2.6,1.6,1.6,'#fff');px(x+1,ht+2.9,.9,1.1,'#16202E');}
+const t0=performance.now();
+(function f(n){const t=(n-t0)/1000;
+const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#0B1020');gr.addColorStop(1,'#1B2C4E');
+g.fillStyle=gr;g.fillRect(0,0,W,H);
+for(let i=0;i<55;i++){const sx=(i*71)%W,sy=(i*37)%150,tw=.35+.35*Math.sin(t*2+i);
+g.fillStyle=`rgba(255,255,255,${tw*.5})`;g.fillRect(sx,sy,2,2);}
+PLAT.forEach(p=>plat(p[0],p[1],p[2]));
+let lt=t%T,ac=0,m=CR[0],p=0;
+for(const v of CR){if(lt<ac+v.d){m=v;p=(lt-ac)/v.d;break;}ac+=v.d;}
+const cx=m.x0+(m.x1-m.x0)*p,lf=m.k==='J'?m.p*4*p*(1-p):0,cy=m.y0+(m.y1-m.y0)*p-lf;
+const sq=(m.k==='R'&&p<.12)?1-.18*(1-p/.12):1;
+run(cx,cy,m.k==='R',t*11,m.k==='J'?p:-1,sq);
+if(m.k==='R')for(let k=0;k<3;k++){const a=((t*6+k*.33)%1),s=Math.max(.4,2.6-a*1.7);
+g.fillStyle=`rgba(255,255,255,${(1-a)*.4})`;g.fillRect(wx(cx-4-a*9),wy(cy-1-a*2.5),s*SC,s*SC*YS);}
+requestAnimationFrame(f);})(t0);
+</script>
+</body>
+</html>
