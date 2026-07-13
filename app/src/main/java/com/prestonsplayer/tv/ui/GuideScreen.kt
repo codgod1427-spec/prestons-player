@@ -67,6 +67,14 @@ fun GuideScreen(
 
     Column(Modifier.fillMaxSize().background(GuideTheme.BG)) {
 
+        // ================= Scrolling PRESTON'S PLAYER parkour banner =================
+        ParkourMarquee(
+            Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .background(GuideTheme.SURFACE_ALT)
+        )
+
         // ================= HEADER: PiP + info + clock/date/weather =================
         Row(
             Modifier
