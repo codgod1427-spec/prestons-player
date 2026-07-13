@@ -45,6 +45,9 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf<Screen>(if (repo.playlistUrl.isBlank()) Screen.Setup else Screen.Loading)
             }
             var city by remember { mutableStateOf(repo.weatherCity) }
+            // Remember the last loaded guide so Setup's Back can return to it.
+            var lastGuide by remember { mutableStateOf<GuideData?>(null) }
+            LaunchedEffect(screen) { (screen as? Screen.Guide)?.let { lastGuide = it.data } }
 
             LaunchedEffect(screen) {
                 if (screen is Screen.Loading) {
@@ -68,14 +71,17 @@ class MainActivity : ComponentActivity() {
                 is Screen.Setup -> SettingsScreen(
                     initialPlaylist = repo.playlistUrl,
                     initialEpg = repo.epgUrl,
-                    initialCity = repo.weatherCity
-                ) { pl, epg, c ->
-                    repo.playlistUrl = pl
-                    repo.epgUrl = epg
-                    repo.weatherCity = c
-                    city = c.trim()
-                    screen = Screen.Loading
-                }
+                    initialCity = repo.weatherCity,
+                    canCancel = lastGuide != null,
+                    onCancel = { lastGuide?.let { screen = Screen.Guide(it) } },
+                    onSave = { pl, epg, c ->
+                        repo.playlistUrl = pl
+                        repo.epgUrl = epg
+                        repo.weatherCity = c
+                        city = c.trim()
+                        screen = Screen.Loading
+                    }
+                )
 
                 is Screen.Loading -> SplashScreen(status = "Loading channels and guide data…")
 
